@@ -1,56 +1,79 @@
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-const dropButton = document.getElementById('dropButton');
-const massInput = document.getElementById('mass');
+
+const graphCanvas = document.getElementById('graph');
+const graphCtx = graphCanvas.getContext('2d');
 
 let ball = {
-  x: canvas.width / 2,
+  x: 200,
   y: 50,
   radius: 20,
-  vy: 0,
-  mass: 1,
-  gravity: 9.81,
-  bounce: 0.7,
-  isDropping: false
+  color: '#1e90ff',
+  vy: 0
 };
 
-function drawBall() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.beginPath();
-  ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-  ctx.fillStyle = 'dodgerblue';
-  ctx.fill();
-  ctx.closePath();
+let gravity = 9.81;
+let bounce = 0.7;
+let animation;
+let heights = [];
+
+function setGravity(g) {
+  gravity = g;
 }
 
-function updateBall() {
-  if (ball.isDropping) {
-    ball.vy += ball.gravity * ball.mass * 0.02;
-    ball.y += ball.vy;
+function dropBall() {
+  ball.y = 50;
+  ball.vy = 0;
+  ball.color = document.getElementById('color').value;
+  bounce = parseFloat(document.getElementById('bounce').value);
+  heights = [];
+  cancelAnimationFrame(animation);
+  animate();
+}
 
-    if (ball.y + ball.radius > canvas.height) {
-      ball.y = canvas.height - ball.radius;
-      ball.vy *= -ball.bounce;
-
-      if (Math.abs(ball.vy) < 0.5) {
-        ball.vy = 0;
-        ball.isDropping = false;
-      }
-    }
-  }
+function resetSim() {
+  cancelAnimationFrame(animation);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  showGraph();
 }
 
 function animate() {
-  drawBall();
-  updateBall();
-  requestAnimationFrame(animate);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ball.vy += gravity * 0.1;
+  ball.y += ball.vy;
+
+  if (ball.y + ball.radius > canvas.height) {
+    ball.y = canvas.height - ball.radius;
+    ball.vy *= -bounce;
+    heights.push(canvas.height - ball.y);
+  }
+
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+  ctx.fillStyle = ball.color;
+  ctx.fill();
+  ctx.closePath();
+
+  animation = requestAnimationFrame(animate);
 }
 
-animate();
+function showGraph() {
+  graphCanvas.style.display = 'block';
+  graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
 
-dropButton.addEventListener('click', () => {
-  ball.mass = parseFloat(massInput.value);
-  ball.vy = 0;
-  ball.y = 50;
-  ball.isDropping = true;
-});
+  graphCtx.beginPath();
+  graphCtx.moveTo(0, graphCanvas.height);
+
+  for (let i = 0; i < heights.length; i++) {
+    let x = (i / heights.length) * graphCanvas.width;
+    let y = graphCanvas.height - heights[i] * 2;
+    graphCtx.lineTo(x, y);
+  }
+
+  graphCtx.strokeStyle = 'blue';
+  graphCtx.stroke();
+  graphCtx.closePath();
+
+  graphCtx.fillText("Bounce Heights Over Time", 10, 20);
+}
